@@ -492,12 +492,13 @@ class ProcessingTests {
 
         scenarioProcessor = createScenarioProcessor(testScenario)
 
-        // When: process frame 1 (event detected, cooldown starts), then frame 2 immediately
+        // When: two matching frames confirm the event and start its cooldown; the third frame is skipped
+        scenarioProcessor.process(testsData.newMockedScreenBitmap())
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
 
-        // Then: condition is only checked once — the event is skipped on frame 2 due to the active cooldown
-        mockProcessingListener.verifyImageConditionProcessed(testCondition, true, processedCount = 1)
+        // Then: the condition is checked for confirmation on frames 1 and 2, but not during cooldown on frame 3
+        mockProcessingListener.verifyImageConditionProcessed(testCondition, true, processedCount = 2)
     }
 
     /**
@@ -529,13 +530,15 @@ class ProcessingTests {
 
         scenarioProcessor = createScenarioProcessor(testScenario)
 
-        // When: process frame 1 (event detected, cooldown starts), wait for cooldown to expire, then frame 2
+        // When: frames 1 and 2 confirm the event, then the cooldown expires before frames 3 and 4 confirm it again
+        scenarioProcessor.process(testsData.newMockedScreenBitmap())
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
         Thread.sleep(10L)
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
+        scenarioProcessor.process(testsData.newMockedScreenBitmap())
 
-        // Then: condition is checked on both frames — the expired cooldown does not block the second frame
-        mockProcessingListener.verifyImageConditionProcessed(testCondition, true, processedCount = 2)
+        // Then: confirmation works again after the cooldown expires
+        mockProcessingListener.verifyImageConditionProcessed(testCondition, true, processedCount = 4)
     }
 
     /**
@@ -588,13 +591,14 @@ class ProcessingTests {
 
         scenarioProcessor = createScenarioProcessor(testScenario)
 
-        // When: process 2 frames; event1 cooldown is active on frame 2
+        // When: event1 is confirmed on frame 2 and its cooldown is active on frame 3
+        scenarioProcessor.process(testsData.newMockedScreenBitmap())
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
 
-        // Then: event1 condition is only checked once (skipped on frame 2); event2 is checked on both frames
-        mockProcessingListener.verifyImageConditionProcessed(testCondition1, true, processedCount = 1)
-        mockProcessingListener.verifyImageConditionProcessed(testCondition2, true, processedCount = 2)
+        // Then: event1 uses two confirmation frames and is skipped on frame 3; event2 keeps running every frame
+        mockProcessingListener.verifyImageConditionProcessed(testCondition1, true, processedCount = 2)
+        mockProcessingListener.verifyImageConditionProcessed(testCondition2, true, processedCount = 3)
     }
 
     /**
@@ -631,16 +635,17 @@ class ProcessingTests {
         mockImageDetector.mockDetectionResult(testCondition, false)
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
 
-        // When: frame 2 — condition detected (event fulfilled, cooldown now starts)
+        // When: frames 2 and 3 detect the condition, confirming the event and starting its cooldown
         mockImageDetector.mockDetectionResult(testCondition, true)
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
-
-        // When: frame 3 — cooldown is active, event should be skipped
         scenarioProcessor.process(testsData.newMockedScreenBitmap())
 
-        // Then: condition is checked on frames 1 and 2 (not detected, then detected), but not on frame 3
+        // When: frame 4 — cooldown is active, event should be skipped
+        scenarioProcessor.process(testsData.newMockedScreenBitmap())
+
+        // Then: the false frame is checked once, two true frames confirm the event, and frame 4 is skipped
         mockProcessingListener.verifyImageConditionProcessed(testCondition, false, processedCount = 1)
-        mockProcessingListener.verifyImageConditionProcessed(testCondition, true, processedCount = 1)
+        mockProcessingListener.verifyImageConditionProcessed(testCondition, true, processedCount = 2)
     }
 
     /**

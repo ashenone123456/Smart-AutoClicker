@@ -25,6 +25,7 @@ import com.buzbuz.smartautoclicker.core.detection.ImageDetector
 import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ConsecutiveDetectionsState
 import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
 import com.buzbuz.smartautoclicker.core.processing.data.scaling.ScalingManager
 import com.buzbuz.smartautoclicker.core.processing.domain.EventType
@@ -80,6 +81,8 @@ internal class ScenarioProcessor(
         randomize = randomize,
         unblockWorkaroundEnabled = unblockWorkaroundEnabled,
     )
+    /** Avoid executing a cooled-down event on a single transient match. */
+    private val consecutiveDetectionsState = ConsecutiveDetectionsState()
 
     fun onScenarioStart(context: Context) {
         processingState.onProcessingStarted(context)
@@ -157,13 +160,19 @@ internal class ScenarioProcessor(
             // Check all events
             for (screenEvent in processingState.getScreenEvents()) {
                 // Enabled state of the event might have changed during the loop
-                if (!processingState.isEventEnabled(screenEvent.id.databaseId)) continue
+                if (!processingState.isEventEnabled(screenEvent.id.databaseId)) {
+                    consecutiveDetectionsState.reset(screenEvent.id.databaseId)
+                    continue
+                }
 
                 // No conditions ? This should not happen, skip this event
                 if (screenEvent.conditions.isEmpty()) continue
 
                 // Event is under cooldown, skip it
-                if (processingState.isCooldownRunning(screenEvent)) continue
+                if (processingState.isCooldownRunning(screenEvent)) {
+                    consecutiveDetectionsState.reset(screenEvent.id.databaseId)
+                    continue
+                }
 
                 progressListener?.onEventProcessingStarted(screenEvent)
                 val results = conditionsVerifier.verifyConditions(
@@ -172,7 +181,12 @@ internal class ScenarioProcessor(
                 )
 
                 progressListener?.onEventProcessingCompleted(screenEvent, results.fulfilled == true, results.getAllScreenConditionsResults())
-                if (results.fulfilled == true) {
+                val shouldExecute = consecutiveDetectionsState.shouldExecute(
+                    eventId = screenEvent.id.databaseId,
+                    confirmationEnabled = screenEvent.cooldownMs > 0L,
+                    conditionsFulfilled = results.fulfilled == true,
+                )
+                if (shouldExecute) {
                     actionExecutor.executeActions(screenEvent, results)
                     progressListener?.onEventActionsExecuted(screenEvent, results.getAllScreenConditionsResults())
 

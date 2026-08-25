@@ -106,29 +106,26 @@ internal class ActionExecutor(
     }
 
     private suspend fun executeClick(event: Event, click: Click, results: ConditionsResults?) {
-        val clickPath = when (click.positionType) {
-            Click.PositionType.USER_SELECTED -> {
-                click.position?.let { position ->
-                    Path().apply { moveTo(position, random) }
-                }
-            }
+        val clickPosition = when (click.positionType) {
+            Click.PositionType.USER_SELECTED -> click.position
 
             Click.PositionType.ON_DETECTED_CONDITION ->
-                getOnConditionClickPath(event, click, results)
+                getOnConditionClickPosition(event, click, results)
         } ?: return
 
-        val clickGesture = GestureDescription.Builder().buildSingleStroke(
-            path = clickPath,
-            durationMs = click.pressDuration!!,
-            random = random,
-        )
-
         withContext(Dispatchers.Main) {
+            if (androidExecutor.clickAccessibilityNodeAt(clickPosition)) return@withContext
+
+            val clickGesture = GestureDescription.Builder().buildSingleStroke(
+                path = Path().apply { moveTo(clickPosition, random) },
+                durationMs = click.pressDuration!!,
+                random = random,
+            )
             androidExecutor.dispatchGesture(clickGesture)
         }
     }
 
-    private fun getOnConditionClickPath(event: Event, click: Click, results: ConditionsResults?): Path? {
+    private fun getOnConditionClickPosition(event: Event, click: Click, results: ConditionsResults?): Point? {
         if (event !is ScreenEvent) return null
 
         val result = when {
@@ -142,15 +139,10 @@ internal class ActionExecutor(
             return null
         }
 
-        return Path().apply {
-            moveTo(
-                position = Point(
-                    (result.position?.x ?: 0) + (click.clickOffset?.x ?: 0),
-                    (result.position?.y ?: 0) + (click.clickOffset?.y ?: 0),
-                ),
-                random = random,
-            )
-        }
+        return Point(
+            (result.position?.x ?: 0) + (click.clickOffset?.x ?: 0),
+            (result.position?.y ?: 0) + (click.clickOffset?.y ?: 0),
+        )
     }
 
     /**

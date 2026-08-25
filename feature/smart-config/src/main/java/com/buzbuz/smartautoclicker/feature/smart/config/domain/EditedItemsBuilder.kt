@@ -87,12 +87,12 @@ class EditedItemsBuilder internal constructor(
             id = eventsIdCreator.generateNewIdentifier(),
             scenarioId = getEditedScenarioIdOrThrow(),
             name = defaultValues.eventName(context),
-            conditionOperator = defaultValues.eventConditionOperator(),
+            conditionOperator = defaultValues.screenEventConditionOperator(),
             priority = getEditedImageEventsCountOrThrow(),
             conditions = mutableListOf(),
             actions = mutableListOf(),
             keepDetecting = false,
-            cooldownMs = 0L,
+            cooldownMs = defaultValues.eventCooldownMs(),
         )
 
     fun createNewTriggerEvent(context: Context): TriggerEvent =
@@ -100,7 +100,7 @@ class EditedItemsBuilder internal constructor(
             id = eventsIdCreator.generateNewIdentifier(),
             scenarioId = getEditedScenarioIdOrThrow(),
             name = defaultValues.eventName(context),
-            conditionOperator = defaultValues.eventConditionOperator(),
+            conditionOperator = defaultValues.triggerEventConditionOperator(),
             conditions = mutableListOf(),
             actions = mutableListOf(),
         )
@@ -306,7 +306,9 @@ class EditedItemsBuilder internal constructor(
             eventId = getEditedEventIdOrThrow(),
             name = defaultValues.clickName(context),
             pressDuration = defaultValues.clickPressDuration(context),
-            positionType = defaultValues.clickPositionType(),
+            positionType = defaultValues.clickPositionType(
+                isScreenEvent = editor.currentEventEditor.value?.editedItem?.value is ScreenEvent,
+            ),
             priority = 0,
         )
 
