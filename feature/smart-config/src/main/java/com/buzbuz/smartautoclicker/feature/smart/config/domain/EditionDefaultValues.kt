@@ -21,6 +21,7 @@ import android.content.Context
 import com.buzbuz.smartautoclicker.core.domain.model.AND
 import com.buzbuz.smartautoclicker.core.domain.model.ConditionOperator
 import com.buzbuz.smartautoclicker.core.domain.model.EXACT
+import com.buzbuz.smartautoclicker.core.domain.model.OR
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.counter.ComparisonOperation
@@ -31,12 +32,18 @@ import com.buzbuz.smartautoclicker.feature.smart.config.utils.getIntentIsAdvance
 import com.buzbuz.smartautoclicker.feature.smart.config.utils.getPauseDurationConfig
 import com.buzbuz.smartautoclicker.feature.smart.config.utils.getSwipeDurationConfig
 
+private const val DEFAULT_SAFE_EVENT_COOLDOWN_MS = 500L
+
 internal class EditionDefaultValues {
 
     fun eventName(context: Context): String =
         context.getString(R.string.default_event_name)
-    @ConditionOperator fun eventConditionOperator(): Int =
+    @ConditionOperator fun screenEventConditionOperator(): Int =
+        OR
+    @ConditionOperator fun triggerEventConditionOperator(): Int =
         AND
+    fun eventCooldownMs(): Long =
+        DEFAULT_SAFE_EVENT_COOLDOWN_MS
 
     fun conditionName(context: Context): String =
         context.getString(R.string.default_condition_name)
@@ -51,8 +58,9 @@ internal class EditionDefaultValues {
         context.getString(R.string.default_click_name)
     fun clickPressDuration(context: Context): Long =
         context.getEventConfigPreferences().getClickPressDurationConfig(context)
-    fun clickPositionType(): Click.PositionType =
-        Click.PositionType.USER_SELECTED
+    fun clickPositionType(isScreenEvent: Boolean): Click.PositionType =
+        if (isScreenEvent) Click.PositionType.ON_DETECTED_CONDITION
+        else Click.PositionType.USER_SELECTED
 
     fun swipeName(context: Context): String =
         context.getString(R.string.default_swipe_name)
