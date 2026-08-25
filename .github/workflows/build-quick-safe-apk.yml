@@ -1,6 +1,8 @@
 name: Build quick-safe APK
 
 on:
+  push:
+    branches: [ codex/quick-safe-v1 ]
   pull_request:
     branches: [ master ]
   workflow_dispatch:
@@ -41,3 +43,43 @@ jobs:
           path: smartautoclicker/build/outputs/apk/fDroid/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+  publish:
+    name: Publish preview APKs
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download built APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: Klickr-quick-safe-Android
+          path: apk
+
+      - name: Prepare phone and universal APKs
+        shell: bash
+        run: |
+          mkdir -p release
+          arm64_apk="$(find apk -type f -name '*arm64-v8a*.apk' -print -quit)"
+          universal_apk="$(find apk -type f -name '*universal*.apk' -print -quit)"
+          test -n "$arm64_apk"
+          test -n "$universal_apk"
+          cp "$arm64_apk" release/Klickr-quick-safe-v1-arm64-v8a.apk
+          cp "$universal_apk" release/Klickr-quick-safe-v1-universal.apk
+
+      - name: Publish quick-safe preview release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view quick-safe-v1 >/dev/null 2>&1 || \
+            gh release create quick-safe-v1 \
+              --prerelease \
+              --target "$GITHUB_SHA" \
+              --title "Klick'r 快捷安全版 v1" \
+              --notes "适用于自定义图片识别与点击。荣耀 90 Pro 推荐安装 arm64-v8a 版本；其他设备可安装 universal 版本。"
+          gh release upload quick-safe-v1 release/*.apk --clobber
