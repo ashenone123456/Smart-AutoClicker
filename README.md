@@ -38,3 +38,9 @@
 * A question ? Read the Wiki first: https://github.com/Nain57/Smart-AutoClicker/wiki
 * Found a bug? Open an issue here: https://github.com/Nain57/Smart-AutoClicker/issues/new?template=bug_report.yml
 * You think an application is blocking Klick'r? Try the obfuscated version: https://github.com/Nain57/Smart-AutoClicker/releases/tag/obfuscation-start
+
+## Quick-safe custom build / 快捷安全版
+
+This fork adds safer defaults for image-driven automation: OR image candidates, click-relative-to-detection, a 500 ms cooldown, and two-frame confirmation for cooled-down events. The existing Quick Settings tile and scenario import/export remain available.
+
+中文安装与配置说明：[Klick'r 快捷安全版使用指南](documentation/QUICK_SAFE_GUIDE_ZH.md)
