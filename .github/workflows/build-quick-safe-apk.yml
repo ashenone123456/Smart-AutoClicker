@@ -1,0 +1,43 @@
+name: Build quick-safe APK
+
+on:
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test and build F-Droid debug APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "21"
+
+      - name: Set NDK
+        shell: bash
+        run: |
+          echo "ANDROID_NDK=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME" >> "$GITHUB_ENV"
+
+      - name: Run unit tests and build APKs
+        run: ./gradlew testFDroidDebugUnitTest assembleFDroidDebug
+        env:
+          JAVA_TOOL_OPTIONS: "-Djava.net.preferIPv4Stack=true"
+
+      - name: Upload installable APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Klickr-quick-safe-Android
+          path: smartautoclicker/build/outputs/apk/fDroid/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
