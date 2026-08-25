@@ -19,6 +19,7 @@ package com.buzbuz.smartautoclicker.core.common.actions
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Intent
+import android.graphics.Point
 import com.buzbuz.smartautoclicker.core.base.Dumpable
 import com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest
 
@@ -60,6 +61,13 @@ interface AndroidActionExecutor: Dumpable {
      * @param gestureDescription The gesture to dispatch
      */
     suspend fun dispatchGesture(gestureDescription: GestureDescription)
+
+    /**
+     * Click the enabled accessibility node containing [position].
+     *
+     * @return true when a node accepted the click, false when a touch gesture should be used instead.
+     */
+    fun clickAccessibilityNodeAt(position: Point): Boolean
 
     /**
      * Performs a global action.
