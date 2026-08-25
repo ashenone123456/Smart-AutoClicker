@@ -140,6 +140,18 @@ class ActionExecutorTests {
     }
 
     @Test
+    fun execute_oneClick_accessibilityNodeHandlesClick_doesNotDispatchGesture() = runTest {
+        val clickAction = getNewDefaultClickUserPos(1)
+        val event = getNewDefaultEvent(actions = listOf(clickAction))
+        mockWhen(mockAndroidExecutor.clickAccessibilityNodeAt(Point(TEST_X1, TEST_Y1))).thenReturn(true)
+
+        actionExecutor.executeActions(event, ConditionsResults())
+
+        verify(mockAndroidExecutor).clickAccessibilityNodeAt(Point(TEST_X1, TEST_Y1))
+        verify(mockAndroidExecutor, never()).dispatchGesture(anyNotNull())
+    }
+
+    @Test
     fun execute_oneClick_onCondition_or() = runTest {
         val clickAction = getNewDefaultClickUserPos(1)
 
