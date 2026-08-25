@@ -20,8 +20,11 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Point
+import android.graphics.Rect
 import android.util.AndroidRuntimeException
 import android.util.Log
+import android.view.accessibility.AccessibilityNodeInfo
 
 import com.buzbuz.smartautoclicker.core.common.actions.gesture.GestureExecutor
 import com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest
@@ -80,6 +83,17 @@ internal class AndroidActionExecutorImpl @Inject constructor(
         }
     }
 
+    override fun clickAccessibilityNodeAt(position: Point): Boolean {
+        val root = accessibilityService?.rootInActiveWindow ?: return false
+
+        return try {
+            root.findClickableNodeAt(position)?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+        } catch (ex: RuntimeException) {
+            Log.w(TAG, "Can't click accessibility node at $position", ex)
+            false
+        }
+    }
+
     override fun performGlobalAction(globalAction: Int) {
         val service = accessibilityService ?: return
 
@@ -135,3 +149,15 @@ internal class AndroidActionExecutorImpl @Inject constructor(
 }
 
 private const val TAG = "ServiceActionExecutor"
+
+private fun AccessibilityNodeInfo.findClickableNodeAt(position: Point): AccessibilityNodeInfo? {
+    val bounds = Rect()
+    getBoundsInScreen(bounds)
+    if (!isVisibleToUser || !isEnabled || !bounds.contains(position.x, position.y)) return null
+
+    for (index in childCount - 1 downTo 0) {
+        getChild(index)?.findClickableNodeAt(position)?.let { return it }
+    }
+
+    return takeIf { isClickable || actionList.any { action -> action.id == AccessibilityNodeInfo.ACTION_CLICK } }
+}
